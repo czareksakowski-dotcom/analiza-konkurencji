@@ -2,7 +2,8 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.anthropic.com https://script.google.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://script.google.com;">
 <title>Analiza Konkurencji — Gastronomia Stacji Paliw</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -322,7 +323,10 @@ Odpowiedz wyłącznie po polsku. Ceny nieczytelne oznacz znakiem ?.` },
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, messages: [{ role: 'user', content }] })
     });
     const data = await res.json();
