@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analiza Konkurencji — Gastronomia Stacji Paliw</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f4;
+  --color-background-tertiary: #eeece8;
+  --color-background-info: #e6f1fb;
+  --color-background-success: #eaf3de;
+  --color-background-danger: #fcebeb;
+  --color-background-warning: #faeeda;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #5f5e5a;
+  --color-text-tertiary: #888780;
+  --color-text-info: #185fa5;
+  --color-text-success: #3b6d11;
+  --color-text-danger: #a32d2d;
+  --color-text-warning: #854f0b;
+  --color-border-tertiary: rgba(26,26,24,0.15);
+  --color-border-secondary: rgba(26,26,24,0.3);
+  --color-border-primary: rgba(26,26,24,0.4);
+  --color-border-info: #378add;
+  --color-border-danger: #e24b4a;
+  --color-border-success: #639922;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1e1e1c;
+    --color-background-secondary: #2a2a28;
+    --color-background-tertiary: #333330;
+    --color-background-info: #0c447c;
+    --color-background-success: #27500a;
+    --color-background-danger: #791f1f;
+    --color-text-primary: #f0ede8;
+    --color-text-secondary: #b4b2a9;
+    --color-text-tertiary: #888780;
+    --color-text-info: #85b7eb;
+    --color-text-success: #c0dd97;
+    --color-text-danger: #f09595;
+    --color-border-tertiary: rgba(240,237,232,0.15);
+    --color-border-secondary: rgba(240,237,232,0.3);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+input, select, button, textarea {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--color-border-primary); }
+button { cursor: pointer; background: transparent; }
+
+.app { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem; }
+.header { margin-bottom: 1.5rem; }
+.header h1 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.header p { font-size: 13px; color: var(--color-text-secondary); }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.section-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.meta-grid input, .meta-grid select { width: 100%; }
+.drop-zone { border: 1.5px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 2rem 1rem; text-align: center; cursor: pointer; transition: background 0.2s; position: relative; }
+.drop-zone:hover { background: var(--color-background-secondary); }
+.drop-zone.drag-over { background: var(--color-background-info); border-color: var(--color-border-info); }
+.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon { font-size: 28px; margin-bottom: 8px; }
+.drop-text { font-size: 14px; color: var(--color-text-secondary); }
+.drop-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.thumb { position: relative; width: 72px; height: 72px; border-radius: var(--border-radius-md); overflow: hidden; border: 0.5px solid var(--color-border-tertiary); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; line-height: 1; }
+.img-count-badge { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; }
+.btn-primary { width: 100%; padding: 11px; background: var(--color-text-primary); color: var(--color-background-primary); border: none; border-radius: var(--border-radius-md); font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { padding: 7px 14px; background: transparent; color: var(--color-text-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+.btn-secondary:hover { background: var(--color-background-secondary); }
+.btn-danger { padding: 7px 14px; background: transparent; color: var(--color-text-danger); border: 0.5px solid var(--color-border-danger); border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; margin-left: auto; }
+.btn-danger:hover { background: var(--color-background-danger); }
+.status { padding: 10px 14px; border-radius: var(--border-radius-md); font-size: 13px; margin-bottom: 1rem; }
+.status.loading { background: var(--color-background-info); color: var(--color-text-info); }
+.status.error { background: var(--color-background-danger); color: var(--color-text-danger); }
+.status.success { background: var(--color-background-success); color: var(--color-text-success); }
+.tabs { display: flex; gap: 4px; margin-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.tab { padding: 8px 14px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; border-radius: 0; }
+.tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
+.tab:hover:not(.active) { color: var(--color-text-primary); }
+.pane { display: none; }
+.pane.active { display: block; }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-secondary); font-size: 14px; }
+.report-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); margin-bottom: 1rem; overflow: hidden; }
+.report-header { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.report-header:hover { background: var(--color-background-secondary); }
+.report-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.report-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+.report-body { padding: 16px; white-space: pre-wrap; font-size: 13px; line-height: 1.65; color: var(--color-text-primary); display: none; }
+.report-body.open { display: block; }
+.report-actions { display: flex; gap: 8px; padding: 10px 16px; border-top: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); flex-wrap: wrap; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge-success { background: var(--color-background-success); color: var(--color-text-success); }
+.badge-info { background: var(--color-background-info); color: var(--color-text-info); }
+.synced-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-success); display: inline-block; margin-right: 4px; }
+.progress-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin: 0 2px; animation: blink 1.2s infinite; }
+.progress-dot:nth-child(2) { animation-delay: 0.2s; }
+.progress-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,80%,100%{opacity:0.2}40%{opacity:1} }
+.gs-link { font-size: 12px; color: var(--color-text-info); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
+.gs-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Analiza konkurencji — gastronomia stacji paliw</h1>
+    <p>Wgraj zdjęcia z wizyty terenowej i wygeneruj raport analityczny</p>
+    <a class="gs-link" href="https://docs.google.com/spreadsheets" target="_blank">Otwórz Google Sheets ↗</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('new')">Nowa analiza</button>
+    <button class="tab" onclick="switchTab('history')">Historia raportów <span id="hist-count" class="badge badge-info" style="margin-left:4px;display:none">0</span></button>
+  </div>
+
+  <div id="pane-new" class="pane active">
+    <div class="card">
+      <div class="section-label">Dane wizyty</div>
+      <div class="meta-grid">
+        <input type="text" id="station-name" placeholder="Nazwa / lokalizacja stacji" />
+        <input type="text" id="auditor" placeholder="Audytor (imię)" />
+        <input type="date" id="visit-date" />
+        <select id="brand">
+          <option value="">Marka stacji...</option>
+          <option>Orlen Stop Café</option>
+          <option>BP Wild Bean</option>
+          <option>Shell Caffé</option>
+          <option>Caffe MOYA</option>
+          <option>Circle K</option>
+          <option>MOL</option>
+          <option>Avia</option>
+          <option>Amic Energy</option>
+          <option>Żabka</option>
+          <option>Inna</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Zdjęcia</div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" multiple onchange="handleFiles(this.files)" />
+        <div class="drop-icon">📷</div>
+        <div class="drop-text">Kliknij lub przeciągnij zdjęcia</div>
+        <div class="drop-hint">JPG, PNG, WEBP — bez limitu liczby</div>
+      </div>
+      <div class="thumbs" id="thumbs"></div>
+      <div id="img-count-wrap" style="display:none">
+        <div class="img-count-badge"><span id="img-count">0</span> zdjęć wgranych</div>
+      </div>
+    </div>
+
+    <div id="status-box" style="display:none"></div>
+
+    <button class="btn-primary" id="analyze-btn" onclick="analyze()" disabled>
+      Generuj raport
+    </button>
+  </div>
+
+  <div id="pane-history" class="pane">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="loadFromSheets()">Odśwież z Google Sheets</button>
+      <button class="btn-secondary" onclick="exportAllExcel()">Eksportuj wszystko → Excel</button>
+    </div>
+    <div id="reports-list">
+      <div class="empty-state">Brak raportów.<br>Wygeneruj pierwszą analizę lub odśwież z Google Sheets.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz_Lw4mnxOhNo-j9mXSH-OrOulbWcTOGwzUBRhupl4RhGxQUbPQwzAi0LHlsLjDcS0wPw/exec';
+
+let images = [];
+let reports = JSON.parse(localStorage.getItem('konkurencja_reports') || '[]');
+
+document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['new','history'][i] === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      images.push({ name: file.name, data: e.target.result, type: file.type });
+      renderThumbs();
+      updateBtn();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+function renderThumbs() {
+  document.getElementById('thumbs').innerHTML = images.map((img,i) => `
+    <div class="thumb">
+      <img src="${img.data}" alt="" />
+      <button class="thumb-remove" onclick="removeImg(${i})">✕</button>
+    </div>`).join('');
+  const cw = document.getElementById('img-count-wrap');
+  cw.style.display = images.length ? 'block' : 'none';
+  document.getElementById('img-count').textContent = images.length;
+}
+
+function removeImg(i) { images.splice(i,1); renderThumbs(); updateBtn(); }
+function updateBtn() { document.getElementById('analyze-btn').disabled = images.length === 0; }
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-box');
+  if (!msg) { el.style.display='none'; return; }
+  el.style.display='block';
+  el.className='status '+type;
+  el.innerHTML=msg;
+}
+
+async function analyze() {
+  const station = document.getElementById('station-name').value || 'Nieznana stacja';
+  const auditor = document.getElementById('auditor').value || '—';
+  const date = document.getElementById('visit-date').value;
+  const brand = document.getElementById('brand').value || '—';
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.textContent = 'Analizuję...';
+  setStatus(`Analizuję ${images.length} zdjęć<span class="progress-dot"></span><span class="progress-dot"></span><span class="progress-dot"></span>`, 'loading');
+
+  const content = [
+    { type: 'text', text: `Jesteś ekspertem analitykiem rynku gastronomicznego w sektorze convenience, specjalizującym się w monitorowaniu oferty kawiarniано-gastronomicznej stacji paliw w Polsce.
+
+Przeprowadź szczegółową analizę zdjęć z wizyty terenowej na stacji konkurencji.
+
+DANE WIZYTY:
+- Stacja / lokalizacja: ${station}
+- Marka: ${brand}
+- Data wizyty: ${date}
+- Audytor: ${auditor}
+- Liczba zdjęć: ${images.length}
+
+Przeanalizuj wszystkie dostarczone zdjęcia i przygotuj raport w następującym formacie:
+
+## RAPORT Z WIZYTY TERENOWEJ
+**Stacja:** ${station} | **Marka:** ${brand} | **Data:** ${date} | **Audytor:** ${auditor}
+
+---
+
+### A. SEKCJA KAWA (Napoje gorące)
+- Zidentyfikowane rodzaje kaw z cenami i rozmiarami
+- Dostępne dodatki (syropy, rodzaje mleka, akcesoria)
+- Ocena ekspozycji i czytelności strefy kawowej
+- Materiały POS i komunikacja promocyjna w strefie
+
+### B. SEKCJA JEDZENIE
+- Zidentyfikowane produkty (kanapki, hot-dogi, przekąski, dania ciepłe)
+- Ceny i gramatura
+- Sposób prezentacji (witryna ciepła/zimna)
+- Marki własne vs produkty zewnętrzne
+- Ocena ekspozycji
+
+### C. MECHANIZMY PROMOCYJNE
+- Aktywne promocje i zestawy
+- Programy lojalnościowe
+- Komunikacja cenowa i value proposition
+
+### D. TABELA ZBIORCZA PRODUKTÓW
+
+| Kategoria | Produkt | Cena (PLN) | Rozmiar/Gramatura | Uwagi |
+|-----------|---------|-----------|------------------|-------|
+
+### E. OCENA OGÓLNA
+- Mocne strony oferty
+- Słabe strony i luki
+- Kluczowe wnioski strategiczne
+
+Odpowiedz wyłącznie po polsku. Ceny nieczytelne oznacz znakiem ?.` },
+    ...images.map(img => ({ type: 'image', source: { type: 'base64', media_type: img.type, data: img.data.split(',')[1] } }))
+  ];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, messages: [{ role: 'user', content }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content.map(b => b.text||'').join('');
+
+    const report = { id: Date.now(), station, brand, date, auditor, imgCount: images.length, text, createdAt: new Date().toLocaleString('pl-PL'), synced: false };
+
+    setStatus('Zapisuję do Google Sheets<span class="progress-dot"></span><span class="progress-dot"></span><span class="progress-dot"></span>', 'loading');
+
+    try {
+      await fetch(SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report)
+      });
+      report.synced = true;
+    } catch(e) {
+      report.synced = false;
+    }
+
+    reports.unshift(report);
+    localStorage.setItem('konkurencja_reports', JSON.stringify(reports));
+
+    const hc = document.getElementById('hist-count');
+    hc.textContent = reports.length;
+    hc.style.display = 'inline-block';
+
+    setStatus(null);
+    images = [];
+    renderThumbs();
+    updateBtn();
+    btn.textContent = 'Generuj raport';
+    btn.disabled = false;
+    switchTab('history');
+    renderHistory();
+
+  } catch(err) {
+    setStatus('Błąd: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Generuj raport';
+  }
+}
+
+async function loadFromSheets() {
+  setStatus('Ładuję raporty z Google Sheets<span class="progress-dot"></span><span class="progress-dot"></span><span class="progress-dot"></span>', 'loading');
+  try {
+    const res = await fetch(SHEETS_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      reports = data.map(r => ({
+        id: r['ID'] || Date.now(),
+        station: r['Stacja'] || '—',
+        brand: r['Marka'] || '—',
+        date: r['Data wizyty'] || '—',
+        auditor: r['Audytor'] || '—',
+        imgCount: r['Liczba zdjęć'] || 0,
+        text: r['Raport'] || '',
+        createdAt: r['Utworzono'] || '—',
+        synced: true
+      }));
+      localStorage.setItem('konkurencja_reports', JSON.stringify(reports));
+      setStatus(null);
+      renderHistory();
+    } else {
+      setStatus('Brak danych w arkuszu.', 'error');
+    }
+  } catch(e) {
+    setStatus('Nie można połączyć z Google Sheets: ' + e.message, 'error');
+  }
+}
+
+function renderHistory() {
+  const el = document.getElementById('reports-list');
+  const hc = document.getElementById('hist-count');
+  if (reports.length === 0) {
+    el.innerHTML = '<div class="empty-state">Brak raportów.<br>Wygeneruj pierwszą analizę lub odśwież z Google Sheets.</div>';
+    return;
+  }
+  hc.textContent = reports.length;
+  hc.style.display = 'inline-block';
+  el.innerHTML = reports.map((r,i) => `
+    <div class="report-card">
+      <div class="report-header" onclick="toggleReport(${i})">
+        <div>
+          <div class="report-title">${r.station}${r.brand && r.brand !== '—' ? ' · ' + r.brand : ''}</div>
+          <div class="report-meta">${r.date} · ${r.auditor} · ${r.imgCount} zdjęć · ${r.createdAt}</div>
+        </div>
+        <span class="badge badge-success">${r.synced ? '<span class="synced-dot"></span>zsynchronizowany' : 'lokalny'}</span>
+      </div>
+      <div id="rbody-${i}" class="report-body">${escHtml(r.text)}</div>
+      <div id="ract-${i}" class="report-actions" style="display:none">
+        <button class="btn-secondary" onclick="copyReport(${i})">Kopiuj tekst</button>
+        <button class="btn-secondary" onclick="exportOneExcel(${i})">Eksport → Excel</button>
+        <button class="btn-danger" onclick="deleteReport(${i})">Usuń</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleReport(i) {
+  const body = document.getElementById('rbody-'+i);
+  const act = document.getElementById('ract-'+i);
+  const open = body.classList.toggle('open');
+  act.style.display = open ? 'flex' : 'none';
+}
+
+function escHtml(t) {
+  return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyReport(i) {
+  navigator.clipboard.writeText(reports[i].text).catch(()=>{});
+}
+
+function deleteReport(i) {
+  reports.splice(i,1);
+  localStorage.setItem('konkurencja_reports', JSON.stringify(reports));
+  renderHistory();
+}
+
+function buildExcelData(list) {
+  const rows = [['Stacja','Marka','Data wizyty','Audytor','Liczba zdjęć','Raport','Utworzono']];
+  list.forEach(r => rows.push([r.station, r.brand, r.date, r.auditor, r.imgCount, r.text, r.createdAt]));
+  return rows;
+}
+
+function exportOneExcel(i) {
+  const r = reports[i];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(buildExcelData([r]));
+  ws['!cols'] = [{wch:20},{wch:15},{wch:12},{wch:12},{wch:8},{wch:80},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Raport');
+  XLSX.writeFile(wb, ('raport_' + r.station.replace(/\s+/g,'_') + '_' + r.date + '.xlsx').toLowerCase());
+}
+
+function exportAllExcel() {
+  if (!reports.length) return;
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(buildExcelData(reports));
+  ws['!cols'] = [{wch:20},{wch:15},{wch:12},{wch:12},{wch:8},{wch:80},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Wszystkie raporty');
+  XLSX.writeFile(wb, 'analiza_konkurencji_' + new Date().toISOString().split('T')[0] + '.xlsx');
+}
+
+renderHistory();
+</script>
+</body>
+</html>
